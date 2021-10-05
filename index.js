@@ -4,8 +4,9 @@ const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectId;
 
+var db = require('./db')
+
 const app = express();
-var db;
 
 
 var banks = [
@@ -53,7 +54,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/banks', (req, res) => {
-    db.collection('banks').find().toArray(function(err, docs){
+    db.get().collection('banks').find().toArray(function(err, docs){
         if(err){
             console.log(err);
             return res.sendStatus(500);
@@ -63,7 +64,7 @@ app.get('/banks', (req, res) => {
 })
 
 app.get('/banks/:id', (req, res) => {
-    db.collection('banks').findOne({ _id: ObjectId(req.params.id) }, function(err, doc){
+    db.get().collection('banks').findOne({ _id: ObjectId(req.params.id) }, function(err, doc){
         if (err){
             console.log(err);
             return res.sendStatus(500);
@@ -74,9 +75,14 @@ app.get('/banks/:id', (req, res) => {
 
 app.post('/banks', (req, res) => {
     const bank = {
-        name : req.body.name
+        // name : req.body.name,
+        'bank name' : req.body.bankname,
+        'interest rate' : req.body.interestrate,
+        'loan term' : req.body.loanterm,
+        'maximum loan' : req.body.maximumloan,
+        'minimum down payment' : req.body.minimumdownpayment,
     }
-    db.collection('banks').insert(bank, function(err, result){
+    db.get().collection('banks').insert(bank, function(err, result){
         if(err){
             console.log(err);
             return res.sendStatus(500); 
@@ -86,7 +92,7 @@ app.post('/banks', (req, res) => {
 })
 
 app.put('/banks/:id', (req, res) => {
-    db.collection('banks').updateOne(
+    db.get().collection('banks').updateOne(
         { _id: ObjectId(req.params.id) },
         { $set: { name: req.body.name } },
         function(err, result) {
@@ -100,7 +106,7 @@ app.put('/banks/:id', (req, res) => {
 })
 
 app.delete('/banks/:id', (req, res) => {
-    db.collection('banks').deleteOne(
+    db.get().collection('banks').deleteOne(
         { _id: ObjectId(req.params.id) },
         function(err, result){
             if (err){
@@ -117,11 +123,10 @@ app.delete('/banks/:id', (req, res) => {
 
 
 
-MongoClient.connect('mongodb://localhost:27017', function(err, client){
+db.connect('mongodb://localhost:27017', function(err, client){
     if(err) {
         console.log(err)
     };
-    db = client.db('banks');
     app.listen(3333, () => {
         console.log('Application listening on port 3333');
     });
