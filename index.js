@@ -1,8 +1,11 @@
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
+const MongoClient = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectId;
 
 const app = express();
+var db;
 
 
 var banks = [
@@ -50,39 +53,76 @@ app.get('/', (req, res) => {
 });
 
 app.get('/banks', (req, res) => {
-    res.send(banks);
+    db.collection('banks').find().toArray(function(err, docs){
+        if(err){
+            console.log(err);
+            return res.sendStatus(500);
+        }
+        res.send(docs);
+    })
 })
 
 app.get('/banks/:id', (req, res) => {
-    const bank = banks.find(bank => bank.id === Number(req.params.id));
-    res.send(bank);
+    db.collection('banks').findOne({ _id: ObjectId(req.params.id) }, function(err, doc){
+        if (err){
+            console.log(err);
+            return res.sendStatus(500);
+        }
+        res.send(doc);
+    })
 })
 
 app.post('/banks', (req, res) => {
     const bank = {
-        id : Date.now(),
         name : req.body.name
     }
-    banks.push(bank);
-    res.send(bank);
+    db.collection('banks').insert(bank, function(err, result){
+        if(err){
+            console.log(err);
+            return res.sendStatus(500); 
+        }
+        res.send(bank);
+    })
 })
 
 app.put('/banks/:id', (req, res) => {
-    const bank = banks.find(bank => bank.id === Number(req.params.id));
-    bank.name = req.body.name;
-    res.sendStatus(200);
+    db.collection('banks').updateOne(
+        { _id: ObjectId(req.params.id) },
+        { $set: { name: req.body.name } },
+        function(err, result) {
+            if (err){
+                console.log(err);
+                return res.sendStatus(500)
+            }
+            res.sendStatus(200);
+        }
+    )
 })
 
 app.delete('/banks/:id', (req, res) => {
-    banks = banks.filter( function (bank) {
-        return bank.id !== Number(req.params.id);
-    });
-    res.sendStatus(200);
+    db.collection('banks').deleteOne(
+        { _id: ObjectId(req.params.id) },
+        function(err, result){
+            if (err){
+                console.log(err);
+                return res.sendStatus(500);
+            }
+            res.sendStatus(200);
+        }
+    )
 })
 
 
 
 
-app.listen(3333, () => {
-    console.log('Application listening on port 3333');
-});
+
+
+MongoClient.connect('mongodb://localhost:27017', function(err, client){
+    if(err) {
+        console.log(err)
+    };
+    db = client.db('banks');
+    app.listen(3333, () => {
+        console.log('Application listening on port 3333');
+    });
+})
